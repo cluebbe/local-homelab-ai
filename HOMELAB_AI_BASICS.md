@@ -242,8 +242,10 @@ experiments:
 2. **Memory:** tell the model *"My name is Sam."* Then ask *"What is my
    name?"* Now type `/clear` and ask again.
 3. **Temperature:** type `/set parameter temperature 0` and ask *"Invent a
-   name for a home server. Reply with the name only."* three times. Then do
-   the same with `/set parameter temperature 1.5`.
+   name for a home server. Reply with the name only."* Then type `/clear` and
+   ask again. Repeat once more, so you have three answers. Then do the same
+   with `/set parameter temperature 1.5`. (`/clear` wipes the conversation
+   but keeps the temperature setting.)
 4. **Confidence:** ask *"Which Ollama command shows the models loaded in
    memory right now?"* Is the answer right? (You know it from Task 2.)
 
@@ -266,6 +268,13 @@ out and are "forgotten".
 always takes the most likely next word. At `1.5` you get a different, more
 unusual name each time. Use low temperature for facts and summaries, and
 higher temperature for brainstorming.
+
+Why `/clear`? Without it, the second question arrives *together with* the
+first question and answer, and the model avoids repeating a name it already
+gave, even at temperature 0. Temperature 0 means "same input, same output",
+and a longer conversation is a different input. In testing, three questions
+in one chat gave *Domus, NovaSpire, Kairos*, and three cleared chats gave
+*Domus, Domus, Domus*.
 
 **4. Confidence.** Small models often answer this **wrongly but
 confidently**. In testing, a 3B model suggested a Docker command instead of
