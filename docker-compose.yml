@@ -1,47 +1,28 @@
-# Reference homelab stack: Ollama (model server) + Open WebUI (chat interface)
+# Open WebUI in Docker, talking to the Ollama you installed natively.
 #
 # Start:   docker compose up -d
 # Status:  docker compose ps
-# Logs:    docker compose logs -f open-webui
-# Stop:    docker compose down          (volumes — your data — are kept)
+# Logs:    docker compose logs -f
+# Stop:    docker compose down          (the volume — your data — is kept)
 #
 # Then open http://localhost:3000 and create the first (admin) account.
 #
-# Note: if Ollama is already running natively on this machine, it occupies
-# port 11434. Either quit it first, or remove the "ports" section of the
-# ollama service below.
+# Linux only: Ollama must listen on the Docker bridge as well. Run
+#   sudo systemctl edit ollama   and add:   Environment="OLLAMA_HOST=0.0.0.0"
+# then restart Ollama, and block port 11434 from outside in your firewall.
 
 services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:11434:11434"      # Bind to localhost only — never expose this to the internet
-    volumes:
-      - ollama-models:/root/.ollama  # Downloaded models survive container updates
-    # NVIDIA GPU on Linux: install the NVIDIA Container Toolkit, then uncomment:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
-
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
-    container_name: open-webui
     restart: unless-stopped
-    depends_on:
-      - ollama
     ports:
-      - "127.0.0.1:3000:8080"
+      - "127.0.0.1:3000:8080"                            # Reachable from this computer only
     environment:
-      - OLLAMA_BASE_URL=http://ollama:11434   # Containers find each other by service name
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434  # "the computer running Docker"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"              # Makes that name work on Linux too
     volumes:
-      - open-webui-data:/app/backend/data     # Users, chats and uploaded documents
+      - open-webui-data:/app/backend/data                # Accounts, chats, uploaded documents
 
 volumes:
-  ollama-models:
   open-webui-data:

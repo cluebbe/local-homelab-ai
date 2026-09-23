@@ -1,8 +1,9 @@
 # Workshop: Local Homelab AI
 
-**Duration:** 90 minutes · **Level:** beginner to intermediate ·
-**Prerequisites:** basic command line use; Python functions, lists and
-dictionaries (see the Python Basics workshop)
+**Duration:** 90 minutes · **Level:** beginner ·
+**Prerequisites:** none. You should be able to install programs on your
+computer. Every terminal command is given in full, and no programming is
+needed. The Python part at the end is optional.
 
 ---
 
@@ -11,12 +12,12 @@ dictionaries (see the Python Basics workshop)
 ### Background
 
 Tools like ChatGPT run a **large language model (LLM)** on someone else's
-servers: your prompt travels over the internet, is processed there, and the
+servers: your question travels over the internet, is processed there, and the
 answer travels back. For personal use that is often fine. For customer
 records, patient data, contracts, or internal company documents it can be a
 legal and practical problem.
 
-A **local LLM** runs the same kind of model on hardware you own. The prompt
+A **local LLM** runs the same kind of model on hardware you own. The question
 never leaves your machine. There are no per-request fees, it works offline,
 and nobody can change or switch off the model behind your back. The price is
 that your hardware has to be strong enough, and you are the one running it.
@@ -29,192 +30,249 @@ that your hardware has to be strong enough, and you are the one running it.
 | **Control** | Provider picks model and updates | You pick, pin and update the model |
 | **Quality ceiling** | Largest frontier models | Limited by your memory |
 
-Every local AI setup is built from the same three layers:
+Every local AI setup is built from the same three layers. You will set up
+all three today:
 
-| Layer | Job | Examples |
+| Layer | Job | Today |
 |---|---|---|
-| **Model** | The trained weights: a file of billions of numbers | Llama, Qwen, Gemma, Mistral |
-| **Runtime** | Loads the model into memory and generates text | Ollama, LM Studio, llama.cpp |
-| **Interface** | How humans or programs talk to the runtime | Terminal, Open WebUI, your own Python code |
-
-This workshop uses **Ollama** as the runtime, talks to it from the terminal
-and from Python, and ends with a small program that answers questions about
-*your own* notes: a minimal RAG pipeline.
+| **Model** | The trained "brain": a file of billions of numbers | `llama3.2:3b` |
+| **Runtime** | Loads the model into memory and generates text | **Ollama** |
+| **Interface** | How people talk to the runtime | Terminal, then **Open WebUI** in the browser |
 
 ### Schedule
 
 | Time | Part | Tasks |
 |---|---|---|
-| 0:00 – 0:10 | Setup and why local AI | Introduction |
-| 0:10 – 0:20 | Will it fit? | Task 1 |
-| 0:20 – 0:40 | Ollama on the command line | Tasks 2 – 3 |
-| 0:40 – 1:05 | Talking to the model from code | Tasks 4 – 8 |
-| 1:05 – 1:25 | Your own documents: embeddings and RAG | Tasks 9 – 10 |
-| 1:25 – 1:30 | Outlook: a permanent homelab stack | Task 11 (bonus / homework) |
+| 0:00 – 0:10 | Why local AI, check the setup | Introduction |
+| 0:10 – 0:20 | Will a model fit on my computer? | Task 1 |
+| 0:20 – 0:35 | Ollama: first model, first conversation | Task 2 |
+| 0:35 – 0:45 | How models behave | Task 3 |
+| 0:45 – 0:55 | Your own assistant with a Modelfile | Task 4 |
+| 0:55 – 1:05 | Docker in five minutes, start Open WebUI | Task 5 |
+| 1:05 – 1:15 | Open WebUI for everyday use | Task 6 |
+| 1:15 – 1:25 | Ask questions about your own documents (RAG) | Task 7 |
+| 1:25 – 1:30 | Keeping it safe | Task 8 |
+| Homework | Optional: talk to your model from Python | Tasks 9 – 10 |
 
-### Setting Up the Development Environment
+### Before the Workshop
 
-**1. Install Ollama**
+Downloads are big. Please do these steps **at home, before the workshop**.
 
-Download it from [ollama.com](https://ollama.com) (macOS, Windows, Linux).
-On Linux the site offers a one-line install script. After installing, check:
+**1. Install Ollama** from [ollama.com](https://ollama.com) (macOS, Windows,
+Linux). On macOS and Windows, run the installer and open the app once.
 
-```bash
-ollama --version
-```
+**2. Open a terminal**
 
-**2. Download two models** (≈ 2.3 GB in total, do this *before* the
-workshop if the network is slow)
+- **macOS:** press `Cmd + Space`, type `Terminal`, press Enter.
+- **Windows:** press the Windows key, type `PowerShell`, press Enter.
+- **Linux:** usually `Ctrl + Alt + T`.
 
-```bash
-ollama pull llama3.2:3b        # A small chat model, ~2 GB
-ollama pull nomic-embed-text   # An embedding model for Task 9, ~0.3 GB
-```
-
-A machine with 8 GB of RAM is enough. No GPU is needed, but it is slower
-without one.
-
-**3. Run the tutorial file**
+**3. Download a model** (about 2 GB). Type this and press Enter:
 
 ```bash
-python3 homelab_ai_basics.py
+ollama pull llama3.2:3b
 ```
 
-Only the Python standard library is used. There is nothing to `pip install`.
+**4. Install Docker Desktop** from
+[docker.com](https://www.docker.com/products/docker-desktop/), start it once,
+then download Open WebUI in advance (several GB). Run this in the folder of
+this repository:
+
+```bash
+docker compose pull
+```
+
+**Hardware:** 8 GB of RAM is enough for today. A graphics card is not needed.
+It only makes answers faster.
 
 ---
 
-## Task 1 — Will It Fit? Sizing a Model
+## Task 1 — Will It Fit? Choosing a Model for Your Computer
 
-A model's size is given as its number of **parameters**: `3B` means 3
-billion numbers. To run a model, all of them have to fit in memory: GPU
-memory (VRAM) if you have a graphics card, otherwise normal RAM. Apple Silicon
-Macs share one pool between both.
+A model's size is given as its number of **parameters**, which are the
+numbers it learned during training. `3B` means 3 billion, `70B` means 70
+billion. More parameters usually means more knowledge and better reasoning,
+but also more memory.
 
-How much memory one parameter takes depends on its **precision**:
+To run a model, **all of it must fit in memory**:
 
-| Precision | Bits per parameter | Typical use |
+- a graphics card's own memory (**VRAM**), which is fast, or else
+- normal **RAM**, which is slower, but works.
+- Apple Silicon Macs share one memory pool, so there all of it counts.
+
+Downloaded models are usually **quantised**: each number is stored in about
+4–5 bits instead of 16. That makes them 3–4 times smaller and only slightly
+worse. This gives a simple rule of thumb:
+
+> **Memory needed ≈ billions of parameters × 0.6 GB** (plus headroom for your
+> operating system)
+
+| Model size | Memory needed (quantised) | Typical hardware |
 |---|---|---|
-| FP16 | 16 | Original training format |
-| Q8 | 8 | Nearly lossless |
-| Q4 (e.g. `Q4_K_M`) | ~4.5 | Default for most downloads, good quality/size balance |
+| 1 – 4B | 1 – 3 GB | Any laptop from the last 5 years |
+| 7 – 9B | 5 – 6 GB | 16 GB laptop, entry-level gaming GPU |
+| 12 – 14B | 8 – 10 GB | 16 GB Mac or 12 – 16 GB graphics card |
+| 27 – 32B | 17 – 22 GB | 32 GB Mac, 24 GB graphics card |
+| 70B | 40 – 48 GB | 64 GB Mac, two large graphics cards |
 
-Storing weights in fewer bits is called **quantisation**. It makes models
-roughly 3–4× smaller at a small cost in quality.
-
-Write a function `estimate_memory_gb(params_billion, bits_per_param)` that
-returns the approximate memory needed. Add about 20 % on top of the raw
-weights for the context window and the runtime itself. Print a table for 3B,
-8B, 14B, 32B and 70B models at FP16 and at Q4.
-
-Then answer: **what is the largest Q4 model your own machine can run?**
+**Your task:** find out how much memory your computer has. Then decide:
+**what is the largest model size you could run?**
 
 <details>
 <summary>Solution</summary>
 
-```python
-def estimate_memory_gb(params_billion, bits_per_param, overhead=1.2):
-    """Rough memory needed to run a model: weights plus ~20 % for context and runtime."""
-    weights_gb = params_billion * bits_per_param / 8   # 8 bits = 1 byte
-    return weights_gb * overhead
+**Where to look:**
 
+| System | RAM | Graphics memory (VRAM) |
+|---|---|---|
+| **macOS** | Apple menu → *About This Mac* → *Memory* | Same as RAM on Apple Silicon |
+| **Windows** | Task Manager (`Ctrl + Shift + Esc`) → *Performance* → *Memory* | Same window → *GPU* → *Dedicated GPU memory* |
+| **Linux** | `free -h` in the terminal | `nvidia-smi` (NVIDIA cards) |
 
-for size in [3, 8, 14, 32, 70]:
-    fp16 = estimate_memory_gb(size, 16)
-    q4 = estimate_memory_gb(size, 4.5)
-    print(f"{size:>3}B model:  FP16 ≈ {fp16:6.1f} GB   Q4 ≈ {q4:5.1f} GB")
-```
-
-```
-  3B model:  FP16 ≈    7.2 GB   Q4 ≈   2.0 GB
-  8B model:  FP16 ≈   19.2 GB   Q4 ≈   5.4 GB
- 14B model:  FP16 ≈   33.6 GB   Q4 ≈   9.4 GB
- 32B model:  FP16 ≈   76.8 GB   Q4 ≈  21.6 GB
- 70B model:  FP16 ≈  168.0 GB   Q4 ≈  47.2 GB
-```
+**Example answers:**
+- 8 GB laptop without a graphics card: stay at **3 – 4B**. Everything else
+  already uses half of your RAM.
+- 16 GB MacBook: **7 – 9B** runs comfortably, 14B is the limit.
+- Gaming PC with a 12 GB graphics card: **up to 14B** fully on the card,
+  which is fast.
 
 **Key points:**
-- Quick estimate: **billions of parameters × bits ÷ 8 = GB of weights.**
-- Leave headroom for the operating system and other programs. On a 16 GB
-  laptop, 8B at Q4 is comfortable and 14B is the limit.
-- If a model does not fit in VRAM, Ollama puts part of it in normal RAM. It
-  still works, but much more slowly. **Memory bandwidth**, not raw compute, is
-  usually what limits generation speed.
-- Longer context windows need more memory. The 20 % is only a rough allowance
-  for a few thousand tokens of context.
+- Do not plan to use all of your memory. The operating system, browser and
+  the conversation itself need some too.
+- If a model does not fit in VRAM, Ollama puts the rest in normal RAM. It
+  still works, but can be several times slower.
+- A bigger model is not automatically the right choice. A fast 8B model you
+  enjoy using beats a 32B model that takes a minute per answer.
 
 </details>
 
 ---
 
-## Task 2 — Ollama on the Command Line
+## Task 2 — Ollama: First Model, First Conversation
 
-Ollama runs a background **server** on `localhost:11434`. The `ollama`
-command is only a client for that server, just like every other tool you
-will use today.
+**Ollama** runs quietly in the background, like a small server on your own
+computer. The `ollama` command in the terminal is how you give it
+instructions.
 
-Try the following and note what each command does:
+Type these commands one at a time and write down what each one does:
 
-1. List the models you have downloaded.
-2. Start an interactive chat with `llama3.2:3b` and ask it something.
-3. Inside the chat, type `/?` to see the built-in commands, then leave the
-   chat.
-4. In a second terminal, while a chat is open, show which models are
-   currently **loaded in memory** and how much they use.
-5. Look at the details of a model: its parameter count, quantisation and
-   context length.
+1. `ollama list`
+2. `ollama run llama3.2:3b`: now ask it something, for example *"Explain
+   what a homelab is in two sentences."*
+3. While the chat is open, type `/?` and press Enter.
+4. Open a **second** terminal window and type `ollama ps`. Look at the
+   `SIZE` and `PROCESSOR` columns.
+5. Back in the chat, type `/bye`. Then try `ollama show llama3.2:3b`.
 
 <details>
 <summary>Solution</summary>
 
-```bash
-ollama list                     # 1. Models on disk
-ollama run llama3.2:3b          # 2. Chat (downloads the model first if missing)
->>> /?                          # 3. Help inside the chat
->>> /bye                        #    Leave (or Ctrl+D)
-ollama ps                       # 4. Models in memory, size, CPU/GPU split
-ollama show llama3.2:3b         # 5. Architecture, parameters, quantisation, context
-```
+| Command | What it does |
+|---|---|
+| `ollama list` | Shows all models downloaded to your disk |
+| `ollama run llama3.2:3b` | Loads the model and starts a chat (downloads it first if needed) |
+| `/?` | Lists the commands available inside a chat |
+| `ollama ps` | Shows models currently loaded **in memory**, and how much they use |
+| `/bye` | Leaves the chat (so does `Ctrl + D`) |
+| `ollama show llama3.2:3b` | Details: parameter count, quantisation, context length, licence |
 
-Other everyday commands:
+Other useful commands:
 
 ```bash
-ollama pull qwen3:4b            # Download without starting a chat
-ollama rm gemma3:1b             # Delete a model from disk
-ollama stop llama3.2:3b         # Unload it from memory right now
-ollama run llama3.2:3b "Explain DNS in one sentence."   # One-shot, no chat
+ollama pull gemma3:4b        # Download another model without starting a chat
+ollama rm gemma3:4b          # Delete a model to free disk space
+ollama stop llama3.2:3b      # Unload it from memory right now
 ```
 
 **Key points:**
-- The name after the colon is a **tag**, usually size and/or quantisation
-  (`llama3.2:3b`, `qwen3:14b`). Without a tag, `latest` is used.
-- `ollama ps` shows the `PROCESSOR` column: `100% GPU` is ideal. A split like
-  `40%/60% CPU/GPU` means the model did not fit in VRAM.
-- A loaded model stays in memory for ~5 minutes after the last request, then
-  is unloaded automatically.
-- Models live in `~/.ollama/models`. That folder is what fills your disk.
+- The part after the colon is a **tag**, usually the size: `llama3.2:3b`,
+  `qwen3:8b`. Browse all available models at
+  [ollama.com/library](https://ollama.com/library).
+- `PROCESSOR: 100% GPU` in `ollama ps` is ideal. A split like `50%/50%
+  CPU/GPU` means the model did not fit in graphics memory.
+- A loaded model stays in memory for about 5 minutes after your last message,
+  then is unloaded automatically.
+- Try pulling the plug: switch off Wi-Fi and keep chatting. It still works.
 
 </details>
 
 ---
 
-## Task 3 — Your Own Model with a Modelfile
+## Task 3 — How Models Behave
 
-A **Modelfile** is to Ollama roughly what a Dockerfile is to Docker: a short
-recipe that builds a new model from an existing one. It does *not* retrain
-anything. It bundles a base model with a **system prompt** (standing
-instructions) and default **parameters**.
+Start a chat again with `ollama run llama3.2:3b` and try these four small
+experiments:
 
-Write a `Modelfile` that creates `homelab-helper`:
-- based on `llama3.2:3b`
-- temperature `0.3`
-- a system prompt that makes it a short-spoken homelab assistant
-
-Build it, chat with it, and ask: *"How do I see which models are loaded right
-now?"* Is the answer correct?
+1. **Speed:** type `/set verbose`, then ask a question. What do the numbers
+   below the answer mean?
+2. **Memory:** tell the model *"My name is Sam."* Then ask *"What is my
+   name?"* Now type `/clear` and ask again.
+3. **Temperature:** type `/set parameter temperature 0` and ask *"Invent a
+   name for a home server. Reply with the name only."* three times. Then do
+   the same with `/set parameter temperature 1.5`.
+4. **Confidence:** ask *"Which Ollama command shows the models loaded in
+   memory right now?"* Is the answer right? (You know it from Task 2.)
 
 <details>
 <summary>Solution</summary>
+
+**1. Speed.** The most important line is **eval rate**, the speed of the
+answer in **tokens per second**. Models do not read or write whole words but
+**tokens**, which are word pieces. An English word is about 1.3 tokens, and
+German words need more. About 10 tokens/s feels like fast reading. Below 5 it
+feels slow.
+
+**2. Memory.** Before `/clear` the model knows your name. Afterwards it does
+not. The model itself remembers **nothing**. The chat program resends the
+whole conversation with every new message. The amount it can take in at once
+is the **context window**. In very long conversations, the oldest parts fall
+out and are "forgotten".
+
+**3. Temperature.** At `0` you get the same answer every time. The model
+always takes the most likely next word. At `1.5` you get a different, more
+unusual name each time. Use low temperature for facts and summaries, and
+higher temperature for brainstorming.
+
+**4. Confidence.** Small models often answer this **wrongly but
+confidently**. In testing, a 3B model suggested a Docker command instead of
+`ollama ps`. This is called a **hallucination**: the model produces text that
+*sounds* right, and has no built-in sense of whether it *is* right.
+
+**Key points:**
+- Always check important facts, especially with small models.
+- Hallucinations get rarer with bigger models and with RAG (Task 7), but
+  never disappear completely.
+
+</details>
+
+---
+
+## Task 4 — Your Own Assistant with a Modelfile
+
+A **Modelfile** is a short text file that creates a new model from an
+existing one. It does **not** retrain anything. It packages the base model
+together with:
+
+- a **system prompt**: standing instructions the model follows in every
+  conversation
+- default **parameters**, such as temperature
+
+Open the file [Modelfile](Modelfile) in this repository with any text editor
+and read it. Then build and try your assistant:
+
+```bash
+ollama create homelab-helper -f Modelfile
+ollama run homelab-helper
+```
+
+Now change the `SYSTEM` text so the assistant does something different, for
+example answering like a patient teacher, or always replying in German.
+Rebuild it with the same `ollama create` command and compare.
+
+<details>
+<summary>Solution</summary>
+
+The provided Modelfile:
 
 ```dockerfile
 FROM llama3.2:3b
@@ -230,445 +288,333 @@ not sure about something.
 """
 ```
 
-```bash
-ollama create homelab-helper -f Modelfile
-ollama run homelab-helper
-ollama list                     # It now shows up next to the base model
+| Line | Meaning |
+|---|---|
+| `FROM` | The model to start from |
+| `PARAMETER temperature 0.3` | Rather predictable answers |
+| `PARAMETER num_ctx 4096` | Context window: how many tokens of conversation it can see |
+| `SYSTEM` | The standing instructions |
+
+A German-speaking variant only needs a different system prompt:
+
+```dockerfile
+SYSTEM """
+Du bist ein geduldiger Homelab-Assistent. Antworte immer auf Deutsch,
+kurz und mit konkreten Befehlen.
+"""
 ```
 
 **Key points:**
-- The new model shares the base model's weights on disk, so it costs almost no
-  extra space.
-- A 3B model will often answer this question **confidently and wrongly**. In
-  testing it suggested `docker ps -a` instead of `ollama ps`. This is a
-  **hallucination**: the model produces plausible text, not checked facts.
-  Small models do this more often. The system prompt asked it to admit
-  uncertainty, and it still did not.
-- `num_ctx` sets the **context window**: how many tokens of conversation the
-  model can see. Anything older falls out and is forgotten. Bigger windows
-  cost more memory.
+- `ollama list` now shows `homelab-helper`. It shares the base model's files
+  on disk, so it takes up almost no extra space.
+- A system prompt shapes **style and focus**. It does not add knowledge. If
+  the base model does not know something, the assistant does not either.
+- Remove it again with `ollama rm homelab-helper`.
 
 </details>
 
 ---
 
-## Task 4 — Your First API Call
+## Task 5 — Docker in Five Minutes, Starting Open WebUI
 
-Everything the CLI does goes through a plain HTTP API. That means **any**
-program can use your local model: scripts, automation tools, web UIs.
+The terminal is fine for you, but not for the rest of your family or team.
+**Open WebUI** gives your local model a ChatGPT-like page in the browser.
 
-1. Use `curl` to send the prompt *"Why would someone run an AI model at
-   home?"* to `POST /api/generate`. Set `"stream": false`.
-2. Do the same from Python using only `urllib.request` and `json`. Write a
-   helper `post_json(path, payload)` that you can reuse for the rest of the
-   workshop.
+We run it with **Docker**. Docker packages a program together with
+everything it needs into a **container**, so it runs the same on every
+computer and you don't need to install anything else.
+
+| Term | Meaning |
+|---|---|
+| **Image** | The packaged program, downloaded once (like an installer) |
+| **Container** | A running copy of an image (like the installed program) |
+| **Volume** | A storage area that survives when the container is deleted: **your data lives here** |
+| **docker-compose.yml** | A text file describing which containers to start, and how |
+
+Open [docker-compose.yml](docker-compose.yml) and find the answers to:
+
+1. On which address will Open WebUI be reachable in your browser?
+2. How does Open WebUI find your Ollama?
+3. Where are your accounts and chats stored?
+
+Then, in the folder of this repository, start it:
+
+```bash
+docker compose up -d
+```
+
+Wait about a minute and open <http://localhost:3000>.
 
 <details>
 <summary>Solution</summary>
+
+1. `127.0.0.1:3000:8080` means that port **3000 on your computer** leads to
+   port 8080 inside the container, so the address is <http://localhost:3000>.
+   `127.0.0.1` restricts it to your own computer.
+2. `OLLAMA_BASE_URL=http://host.docker.internal:11434`. Inside a container,
+   `localhost` means the container itself. `host.docker.internal` is Docker's
+   name for *the computer the container runs on*, where Ollama listens on
+   port 11434.
+3. In the volume `open-webui-data`. Deleting and recreating the container
+   keeps it.
+
+**Everyday Docker commands:**
+
+```bash
+docker compose ps              # Is it running?
+docker compose logs -f         # Show its log output (Ctrl + C to stop watching)
+docker compose down            # Stop and remove the container (data is kept)
+docker compose pull            # Download a newer version…
+docker compose up -d           # …and start it
+```
+
+**If the page does not load:**
+- Give it a minute. The first start takes a while. Check `docker compose
+  logs -f`.
+- "No models found" in Open WebUI means Ollama is not running, or (on Linux)
+  not reachable from Docker. See the comment at the top of
+  `docker-compose.yml`.
+- `port is already allocated`: something else uses port 3000. Change the
+  first `3000` in the file to e.g. `3001`.
+
+</details>
+
+---
+
+## Task 6 — Open WebUI for Everyday Use
+
+1. **Create the first account.** The first account created becomes the
+   **administrator**. Do this straight away on a new installation.
+2. **Chat.** Pick `llama3.2:3b` at the top and ask something. If you
+   downloaded a second model, switch models in the middle of a conversation
+   and ask the same question again.
+3. **System prompt.** Find the chat settings (the controls icon at the top
+   right) and give this chat a system prompt, like in Task 4, but without any
+   files.
+4. **Users.** As administrator, open the *Admin Panel*. Find the setting
+   that decides what happens when someone new signs up.
+
+<details>
+<summary>Solution</summary>
+
+1. The admin account can see and manage all users, models and settings.
+   Use a strong password.
+2. The model menu at the top switches models per chat. Because the whole
+   conversation is resent with every message (Task 3), the new model sees
+   everything said so far.
+3. A system prompt set in the chat controls applies to that chat only. Under
+   *Workspace → Models* you can save a permanent assistant with its own name,
+   system prompt and settings. That is the browser version of a Modelfile.
+4. *Admin Panel → Settings → General*: the **default user role**. Leave it
+   at **pending**, so new accounts can do nothing until an admin approves them
+   under *Admin Panel → Users*.
+
+**Key points:**
+- Menu names move around between Open WebUI versions. If something is not
+  where described, look in the *Admin Panel* or your profile menu at the
+  bottom left.
+- In *Admin Panel → Settings*, check that features that contact the internet
+  (web search, external model connections) are switched **off** unless you
+  want them. They would send data outside your network.
+
+</details>
+
+---
+
+## Task 7 — Ask Questions About Your Own Documents (RAG)
+
+A model only knows what it saw during training. It knows nothing about *your*
+contracts, manuals or notes. Pasting a long document into the chat quickly
+hits the context window.
+
+**Retrieval-Augmented Generation (RAG)** solves this:
+
+1. Your documents are split into small pieces (**chunks**).
+2. Each chunk is turned into a list of numbers that captures its *meaning*,
+   called an **embedding**, and stored in a **vector database**.
+3. When you ask a question, the chunks with the most similar meaning are
+   looked up...
+4. ...and handed to the model together with your question, so it can answer
+   from them.
+
+The model is not retrained. It simply gets the right page placed in front of
+it at the right moment. Open WebUI does all of this for you.
+
+**Your task:**
+
+1. First, without any document, ask the model: *"When are updates installed
+   in the Meyer family homelab?"* What happens?
+2. In Open WebUI go to *Workspace → Knowledge*, create a knowledge base
+   called `Homelab`, and upload
+   [sample_docs/homelab_handbook.md](sample_docs/homelab_handbook.md).
+3. Start a new chat, type `#`, select `Homelab`, and ask the same question
+   again. Then try:
+   - *"What should I do if no websites load?"*
+   - *"What is the IP address of the NAS?"*
+   - *"Can Anna store client files on atlas?"*
+   - *"What is the capital of Australia?"*
+4. Check the **sources** shown under each answer.
+
+<details>
+<summary>Solution</summary>
+
+1. Without the document the model has no chance. It either says it doesn't
+   know or, more likely, **invents** a plausible schedule.
+2. + 3. With the knowledge base the answers come from the handbook:
+   - updates on the **last Sunday of every month**, after a backup
+   - restart `beacon` (the Pi-hole): unplug, wait ten seconds, plug back in
+   - `vault` is `192.168.40.20`
+   - no, because her employer's policy forbids it, even locally
+   - the capital question is answered from general knowledge. Nothing in the
+     handbook matches, and the sources show that.
+4. Sources let you **check** where an answer came from. This is the most
+   important habit when using RAG at work.
+
+**Key points:**
+- RAG is the right tool for *knowledge that changes*: a new document is
+  searchable seconds after upload. Retraining a model would take hours.
+- If answers are poor, the problem is usually the **retrieval**, not the
+  model: the wrong chunks were found. Under *Admin Panel → Settings →
+  Documents* you can change the chunk size and the embedding model.
+- Scanned PDFs without a text layer contain only images, so there is nothing
+  to search. They need OCR first.
+- Everything, including the documents, embeddings and database, stays on your
+  machine.
+
+</details>
+
+---
+
+## Task 8 — Keeping It Safe
+
+Your homelab now holds private documents and chats. Go through this checklist
+together and decide, for each line, whether it applies to your setup.
+
+| Area | Checklist item |
+|---|---|
+| **Access** | Ports are bound to `127.0.0.1`, or only reachable inside your home network |
+| | Ollama's port 11434 is **never** reachable from the internet. It has no password at all |
+| | New Open WebUI accounts must be approved (role *pending*) |
+| | Remote access goes through a VPN (e.g. Tailscale, WireGuard), not through open router ports |
+| **Backup** | Back up the Open WebUI **volume**, not the container. Models can be downloaded again |
+| | Keep at least one copy on a different device, and one outside your home |
+| | Test a restore at least once |
+| **Updates** | Back up first, then update: `docker compose pull && docker compose up -d` |
+| | Update Ollama through its app or installer |
+| | Update on a fixed day, not the moment a new version appears |
+
+<details>
+<summary>Solution</summary>
+
+**Backing up the Open WebUI volume** (run in the repository folder, with the
+container stopped so the database is consistent):
+
+```bash
+docker compose down
+docker run --rm -v local-homelab-ai_open-webui-data:/data -v "$PWD":/backup \
+  alpine tar czf /backup/open-webui-backup.tar.gz -C /data .
+docker compose up -d
+```
+
+Check the exact volume name with `docker volume ls`. Compose puts the folder
+name in front of it.
+
+**Key points:**
+- A local setup is only as private as its weakest point. An exposed port or
+  an unapproved account undoes the whole advantage over the cloud.
+- The sample handbook in Task 7 does exactly this: fixed update day, backup
+  first, no open ports, VPN for remote access.
+- For access from other devices in your home, put a reverse proxy with HTTPS
+  (e.g. Caddy) in front of Open WebUI. On a dedicated server, the
+  [docker-compose.full-stack.yml](docker-compose.full-stack.yml) runs Ollama
+  in Docker too.
+
+</details>
+
+---
+
+## Optional Part — Talking to Your Model from Python
+
+Everything Open WebUI does, it does through Ollama's HTTP interface (its
+**API**). Any program can do the same. You don't need to be able to program
+for these tasks. You only run and change existing code.
+
+### Task 9 — One Request, Three Ways
+
+Send one question to Ollama without any chat interface. Paste this into the
+terminal (on macOS or Linux):
 
 ```bash
 curl http://localhost:11434/api/generate -d '{
   "model": "llama3.2:3b",
-  "prompt": "Why would someone run an AI model at home?",
+  "prompt": "Why would someone run an AI model at home? One sentence.",
   "stream": false
 }'
 ```
 
-```python
-import json
-import urllib.request
-
-OLLAMA_URL = "http://localhost:11434"
-CHAT_MODEL = "llama3.2:3b"
-
-
-def post_json(path, payload):
-    """Send a POST request with a JSON body and return the decoded JSON."""
-    request = urllib.request.Request(
-        OLLAMA_URL + path,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(request) as response:
-        return json.loads(response.read())
-
-
-result = post_json("/api/generate", {
-    "model": CHAT_MODEL,
-    "prompt": "In one sentence: why would someone run an AI model at home?",
-    "stream": False,
-})
-print(result["response"])
-```
-
-**Key points:**
-- The answer text is in `result["response"]`. The rest of the JSON is
-  metadata, which Task 5 uses.
-- Useful `GET` endpoints: `/api/tags` (same as `ollama list`), `/api/ps`
-  (same as `ollama ps`), `/api/version`.
-- Ollama also provides an **OpenAI-compatible** API under `/v1/`. Many
-  existing tools and libraries can use your local model just by changing their
-  base URL to `http://localhost:11434/v1`.
-
-</details>
-
----
-
-## Task 5 — Tokens and Speed
-
-LLMs do not read words. They read **tokens**, which are word pieces. As a rule
-of thumb, one English word is about 1.3 tokens. German and code usually need
-more tokens per word. Context limits and speed are both measured in tokens.
-
-Using the `result` from Task 4, print:
-- how many tokens the prompt had (`prompt_eval_count`)
-- how many tokens the answer had (`eval_count`)
-- the generation speed in tokens per second (`eval_duration` is in
-  **nanoseconds**)
-
-Compare with your neighbour: whose machine is fastest, and why?
+Find the answer text in the result. What else does the result contain?
 
 <details>
 <summary>Solution</summary>
 
-```python
-prompt_tokens = result["prompt_eval_count"]
-answer_tokens = result["eval_count"]
-seconds = result["eval_duration"] / 1e9
-
-print(f"Prompt tokens:  {prompt_tokens}")
-print(f"Answer tokens:  {answer_tokens}")
-print(f"Speed:          {answer_tokens / seconds:.1f} tokens/second")
-```
+The answer is in `"response"`. The rest is information about the request:
+`prompt_eval_count` (tokens in your question), `eval_count` (tokens in the
+answer), and durations in nanoseconds. This is where `/set verbose` in Task 3
+got its numbers.
 
 **Key points:**
-- About 10 tokens/s feels like fast reading speed. Below 5 it feels sluggish.
-- A GPU or Apple Silicon machine is often 5–20× faster than a CPU-only
-  laptop, mainly because of higher memory bandwidth.
-- `ollama run --verbose llama3.2:3b` prints the same statistics after every
-  answer in the terminal.
+- `curl` is a program that sends web requests. Your browser does the same
+  thing when it opens a page.
+- Ollama also offers an interface compatible with OpenAI's, at
+  `http://localhost:11434/v1`. Many existing tools and apps can use your local
+  model just by changing that address.
+- Windows PowerShell handles quotes differently. Use the Python file in Task
+  10 instead.
 
 </details>
 
----
+### Task 10 — Run and Change the Tutorial Script
 
-## Task 6 — Chat with Memory
+[homelab_ai_basics.py](homelab_ai_basics.py) walks through everything from
+this workshop in code: sizing, a first request, tokens and speed, chat
+memory, temperature, streaming, and a small RAG pipeline built by hand. It
+only uses Python's built-in modules.
 
-The model has **no memory** between requests. What looks like memory in a
-chat app is the app sending the *entire* conversation again every time.
+```bash
+ollama pull nomic-embed-text      # The small embedding model for sections 8 and 9
+python3 homelab_ai_basics.py
+```
 
-Use `POST /api/chat`, which takes a list of `messages`, each with a `role`
-(`system`, `user`, `assistant`) and `content`.
+Then change it:
 
-1. Start with a system message that makes the model answer in at most two
-   sentences, and a user message: *"My server is called 'atlas'. Remember
-   that."*
-2. Append the assistant's reply to the list.
-3. Ask *"What is my server called?"* and check that it knows.
-4. Now leave out step 2 and try again. What happens?
+1. At the top, set `CHAT_MODEL` to another model from `ollama list`, and run
+   it again. Which answers change?
+2. In section 9, add a note of your own to the `notes` list and a question
+   that only that note can answer.
 
 <details>
 <summary>Solution</summary>
 
-```python
-messages = [
-    {"role": "system", "content": "You are a concise homelab assistant. Answer in at most two sentences."},
-    {"role": "user", "content": "My server is called 'atlas'. Remember that."},
-]
-reply = post_json("/api/chat", {"model": CHAT_MODEL, "messages": messages, "stream": False})
-messages.append(reply["message"])            # The model's answer becomes part of the history
-print("Assistant:", reply["message"]["content"])
+1. Only the model name needs to change. Every other part of the script works
+   with any chat model. Speed (section 4) and answer style differ most.
+2. For example:
 
-messages.append({"role": "user", "content": "What is my server called?"})
-reply = post_json("/api/chat", {"model": CHAT_MODEL, "messages": messages, "stream": False})
-print("Assistant:", reply["message"]["content"])   # "Your server is called atlas."
-```
+   ```python
+   notes = [
+       ...
+       "The spare key for the server cupboard hangs on the hook behind the kitchen door.",
+   ]
+   ```
 
-**Key points:**
-- Without the history the second request is a brand-new conversation, and
-  the model has to guess.
-- Every turn resends everything, so long chats get slower and eventually hit
-  the context window. That is why chat apps summarise or trim old messages.
-- The `system` message is the same mechanism as `SYSTEM` in the Modelfile,
-  set per request instead of built into the model.
-
-</details>
-
----
-
-## Task 7 — Temperature
-
-At every step the model has a probability for each possible next token.
-**Temperature** controls how it picks:
-
-- `0`: always take the most likely token. The same prompt gives the same answer.
-- `0.7` (typical default): some variety.
-- `> 1`: creative, but increasingly random and error-prone.
-
-Ask for *"Invent a name for a home server. Reply with the name only."* twice at
-temperature `0` and twice at `1.5`. Parameters go in an `"options"`
-dictionary.
-
-<details>
-<summary>Solution</summary>
-
-```python
-for temperature in [0.0, 0.0, 1.5, 1.5]:
-    answer = post_json("/api/generate", {
-        "model": CHAT_MODEL,
-        "prompt": "Invent a name for a home server. Reply with the name only.",
-        "stream": False,
-        "options": {"temperature": temperature},
-    })
-    print(f"temperature={temperature}: {answer['response'].strip()}")
-```
-
-```
-temperature=0.0: "Domus"
-temperature=0.0: "Domus"
-temperature=1.5: OmniaNova
-temperature=1.5: NovaSphere
-```
+   and ask `"Where is the key for the server cupboard?"`. The `Retrieved:`
+   lines show which notes were handed to the model. That is exactly what
+   Open WebUI showed as **sources** in Task 7.
 
 **Key points:**
-- Use low temperature for facts, extraction, code and RAG. Use higher
-  temperature for brainstorming and creative text.
-- Temperature does not make a model more or less *knowledgeable*. It only
-  changes how adventurous the choice of words is.
-- Other useful options: `num_ctx` (context size), `seed` (reproducible
-  output), `num_predict` (maximum answer length).
-
-</details>
-
----
-
-## Task 8 — Streaming
-
-Without `"stream": false`, Ollama sends the answer piece by piece: one JSON
-object per line, each with a bit of `response` text, and a final one with
-`"done": true`.
-
-Read the stream line by line and print each piece immediately (use
-`print(..., end="", flush=True)`). Measure how long it takes until the
-**first** text appears.
-
-<details>
-<summary>Solution</summary>
-
-```python
-import time
-
-request = urllib.request.Request(
-    OLLAMA_URL + "/api/generate",
-    data=json.dumps({"model": CHAT_MODEL, "prompt": "Count from 1 to 10."}).encode(),
-    headers={"Content-Type": "application/json"},
-)
-start = time.perf_counter()
-first_token_at = None
-with urllib.request.urlopen(request) as response:
-    for line in response:                     # One JSON object per line
-        chunk = json.loads(line)
-        if first_token_at is None:
-            first_token_at = time.perf_counter() - start
-        print(chunk["response"], end="", flush=True)
-        if chunk["done"]:
-            break
-print(f"\n(first text after {first_token_at:.2f} s)")
-```
-
-**Key points:**
-- Total time is the same with or without streaming, but *perceived* speed is
-  much better. This is why every chat UI streams.
-- The first request after a pause is slower because the model has to be
-  loaded from disk into memory first. Run it twice and compare.
-
-</details>
-
----
-
-## Task 9 — Embeddings: Meaning as Numbers
-
-To let a model use *your* documents, we first need to find the relevant ones.
-An **embedding model** turns a text into a vector, a long list of numbers.
-Texts with similar *meaning* get vectors pointing in similar directions,
-even if they share no words.
-
-**Cosine similarity** measures that direction: `1.0` means the same
-direction, around `0` means unrelated.
-
-1. Write `embed(texts)` using `POST /api/embed` with model
-   `nomic-embed-text` and `"input": [list of texts]`. The result has an
-   `"embeddings"` list.
-2. Write `cosine_similarity(a, b)` (dot product divided by the product of
-   the lengths) using `math.sqrt`.
-3. Compare *"How do I back up my data?"* with *"Saving a copy of my files"*
-   and with *"My cat likes tuna"*.
-
-<details>
-<summary>Solution</summary>
-
-```python
-import math
-
-EMBED_MODEL = "nomic-embed-text"
-
-
-def embed(texts):
-    """Return one embedding vector per input text."""
-    return post_json("/api/embed", {"model": EMBED_MODEL, "input": texts})["embeddings"]
-
-
-def cosine_similarity(a, b):
-    """Measure how similar two vectors are, from -1 to 1."""
-    dot = sum(x * y for x, y in zip(a, b))
-    norm_a = math.sqrt(sum(x * x for x in a))
-    norm_b = math.sqrt(sum(y * y for y in b))
-    return dot / (norm_a * norm_b)
-
-
-vectors = embed(["How do I back up my data?", "Saving a copy of my files", "My cat likes tuna"])
-print(len(vectors[0]))                                   # 768 numbers per text
-print(cosine_similarity(vectors[0], vectors[1]))         # ~0.63 — related
-print(cosine_similarity(vectors[0], vectors[2]))         # ~0.38 — unrelated
-```
-
-**Key points:**
-- "backup" and "saving a copy" share no words, but the vectors are still
-  close. That is the difference from a keyword search.
-- Absolute values depend on the embedding model. Only compare scores that come
-  from the same model.
-- A **vector database** (Chroma, Qdrant, pgvector, ...) does exactly this
-  comparison, but fast for millions of documents.
-
-</details>
-
----
-
-## Task 10 — A Minimal RAG Pipeline
-
-**Retrieval-Augmented Generation (RAG)** combines Tasks 4 and 9:
-
-1. **Index:** embed all your documents once.
-2. **Retrieve:** embed the question and find the most similar documents.
-3. **Augment:** paste those documents into the prompt.
-4. **Generate:** let the model answer *from the pasted text*.
-
-The model is never retrained. It just gets the right page placed in front of
-it at the right moment.
-
-Given these notes:
-
-```python
-notes = [
-    "The NAS is backed up every Sunday at 03:00 to an external USB drive labelled 'vault'.",
-    "The Wi-Fi password for the guest network is printed on the router's underside.",
-    "Ollama runs on the machine 'atlas' and listens only on localhost port 11434.",
-    "The Raspberry Pi in the hallway runs Pi-hole for network-wide ad blocking.",
-    "Open WebUI is reachable at http://atlas:3000 and requires an admin-approved account.",
-]
-```
-
-Write `retrieve(question, top_k=2)` and `ask(question)`. The prompt must tell
-the model to answer **only** from the notes and to say so if they don't
-contain the answer. Test with *"When does the NAS backup run?"* and *"What is
-the capital of France?"*
-
-<details>
-<summary>Solution</summary>
-
-```python
-note_vectors = embed(notes)                  # Index once
-
-
-def retrieve(question, top_k=2):
-    """Return the top_k notes most similar to the question."""
-    question_vector = embed([question])[0]
-    scored = [(cosine_similarity(question_vector, v), note) for v, note in zip(note_vectors, notes)]
-    scored.sort(reverse=True)
-    return [note for _, note in scored[:top_k]]
-
-
-def ask(question):
-    """Answer a question using only the retrieved notes as context."""
-    context = "\n".join(f"- {note}" for note in retrieve(question))
-    prompt = (
-        "Answer the question using only the notes below. "
-        "If the notes do not contain the answer, say you don't know.\n\n"
-        f"Notes:\n{context}\n\nQuestion: {question}"
-    )
-    answer = post_json("/api/generate", {
-        "model": CHAT_MODEL,
-        "prompt": prompt,
-        "stream": False,
-        "options": {"temperature": 0},
-    })
-    return answer["response"].strip()
-
-
-print(ask("When does the NAS backup run?"))     # "Every Sunday at 03:00."
-print(ask("What is the capital of France?"))    # "I don't know."
-```
-
-**Key points:**
-- The second answer shows the value of the instruction: the model *knows*
-  Paris, but was told to rely only on the notes. For private documents this
-  keeps answers grounded and checkable.
-- Retrieval always returns *something*, even for unrelated questions. Always
-  print the retrieved context while developing, because bad retrieval is the
-  most common reason for bad RAG answers.
-- Real documents are too long for one vector. They are split into **chunks**
-  (a few hundred tokens each, with some overlap) before embedding. Chunk size
-  is the first knob to turn when quality is poor.
-- Open WebUI, AnythingLLM and similar tools run this same pipeline behind
-  their "upload a document" button.
-
-</details>
-
----
-
-## Task 11 — Bonus: A Permanent Homelab Stack
-
-So far Ollama was only for you, on the command line. A homelab usually runs
-services **permanently** and gives other people in the household or office a
-browser interface. Docker Compose describes the whole stack in one file.
-
-Look at [docker-compose.yml](docker-compose.yml) in this repository and
-answer:
-
-1. How does Open WebUI find Ollama? (Hint: `OLLAMA_BASE_URL`.)
-2. What happens to your downloaded models and chat history when you run
-   `docker compose down` and then `up -d` again?
-3. Why are the ports written as `127.0.0.1:3000:8080` rather than
-   `3000:8080`?
-
-Start the stack with `docker compose up -d`, open <http://localhost:3000>,
-create the first account, and pull a model from the admin settings.
-
-<details>
-<summary>Solution</summary>
-
-1. Containers in the same Compose project share a private network and reach
-   each other by **service name**. So `http://ollama:11434` works inside the
-   network, while `localhost` inside a container would mean the container
-   itself.
-2. They survive. They live in the named **volumes** `ollama-models` and
-   `open-webui-data`, not in the containers. Only `docker compose down -v`
-   deletes volumes. **Those volumes are what you back up.**
-3. `127.0.0.1:` binds the port to this machine only. Without it the service
-   is reachable from the whole network and, with a careless router setup, from
-   the internet. **Ollama's API has no authentication**: anyone who reaches
-   port 11434 can use your hardware and read or delete your models.
-
-**Key points:**
-- The first account created in Open WebUI becomes the **admin**. Create it
-  right away, and approve later sign-ups manually.
-- To give other devices in your LAN access, put a reverse proxy (e.g. Caddy)
-  with HTTPS in front of Open WebUI, rather than opening the ports directly.
-  For access from outside, use a VPN such as WireGuard or Tailscale.
-- Update with `docker compose pull && docker compose up -d`. Back up the
-  volumes first.
-- If Ollama already runs natively on your machine, port 11434 is taken. Stop
-  it, or delete the `ports:` section of the `ollama` service.
+- Section 8 shows what an embedding is: a list of 768 numbers. Texts with
+  similar meaning have similar numbers, even without shared words.
+- Section 9 is RAG in about 30 lines: embed the notes, find the closest ones,
+  paste them into the prompt, ask the model.
 
 </details>
 
@@ -676,12 +622,14 @@ create the first account, and pull a model from the admin settings.
 
 ## Where to Go Next
 
-- **Try bigger or specialised models.** Compare a general model with a coding
-  or reasoning model of the same size on your own tasks. Check each model's
+- **Try other models.** Compare a general model with a coding or reasoning
+  model of the same size on your own everyday tasks. Check each model's
   **licence** before using it commercially.
-- **LM Studio** is a desktop app that does the same as Ollama with a
-  graphical model browser, which is handy for exploring quantisations.
-- **Automation:** tools like n8n can call your local model from workflows
-  (e.g. summarise every incoming invoice email).
-- **Fine-tuning (LoRA)** changes a model's style or teaches it a fixed output
-  format. Try good prompts and RAG first: they solve most problems more cheaply.
+- **LM Studio** is a desktop app that does the same job as Ollama with a
+  graphical model browser, which is handy for getting started without a
+  terminal.
+- **Automation:** tools like n8n can use your local model inside workflows,
+  for example summarising every incoming invoice email.
+- **Fine-tuning** (e.g. with LoRA) changes a model's style or teaches it a
+  fixed output format. It needs a good graphics card. Try good system prompts
+  and RAG first: they solve most problems more cheaply.

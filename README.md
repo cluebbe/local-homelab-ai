@@ -1,52 +1,59 @@
 # Local Homelab AI Workshop
 
-A hands-on, 90-minute workshop on running large language models on your own
-hardware. Your prompts and documents never leave your machine. Participants
-size hardware for a model, drive Ollama from the terminal, build a custom
-model, talk to it from Python, and finish with a small RAG pipeline that
-answers questions about their own notes.
+A hands-on, 90-minute beginner workshop on running AI language models on your
+own hardware. Your questions and documents never leave your machine.
+Participants find out which models their computer can run, chat with a model
+through Ollama, build their own assistant, start a ChatGPT-like browser
+interface with Docker and Open WebUI, and let it answer questions about their
+own documents. It ends with a checklist for keeping the setup safe.
 
-The workshop comes as a pair: a runnable `.py` file you can execute and
-experiment with, and a `.md` workshop file with step-by-step tasks and
-collapsible solutions.
+**No programming experience needed.** Every command is given in full. An
+optional final part shows the same ideas in Python for those who want to go
+further.
 
 ---
 
 ## Getting Started
 
-**Requirements:** [Ollama](https://ollama.com), Python 3.9 or newer, and about
-8 GB of RAM. No GPU and no Python packages are needed. Docker is optional and
-only used in the bonus task.
+**Requirements:** a computer with at least 8 GB of RAM,
+[Ollama](https://ollama.com) and
+[Docker Desktop](https://www.docker.com/products/docker-desktop/). A graphics
+card is not needed. Python 3.9+ is only needed for the optional part.
+
+Do the downloads before the workshop, because they are several GB:
 
 ```bash
-# Download the two models used in the workshop (~2.3 GB)
-ollama pull llama3.2:3b
-ollama pull nomic-embed-text
-
-# Run the tutorial
-python3 homelab_ai_basics.py
+ollama pull llama3.2:3b       # The model used throughout (~2 GB)
+docker compose pull           # Open WebUI (run inside this folder)
+ollama pull nomic-embed-text  # Only for the optional Python part
 ```
 
-Work through the `.md` file alongside the code: read a section, try the task
-yourself, then open the solution to compare.
+Work through the `.md` file: read a section, try the task yourself, then open
+the solution to compare.
 
 ---
 
 ## Workshop
 
 ### Local Homelab AI
-**Files:** [homelab_ai_basics.py](homelab_ai_basics.py) ·
-[HOMELAB_AI_BASICS.md](HOMELAB_AI_BASICS.md) · [Modelfile](Modelfile) ·
-[docker-compose.yml](docker-compose.yml)
+**Files:** [HOMELAB_AI_BASICS.md](HOMELAB_AI_BASICS.md) (the workshop) ·
+[Modelfile](Modelfile) · [docker-compose.yml](docker-compose.yml) ·
+[sample_docs/](sample_docs/) · [homelab_ai_basics.py](homelab_ai_basics.py)
+(optional part)
 
 | Time | Part |
 |---|---|
 | 0:00 – 0:10 | Why local AI: privacy, cost, offline use, control. Model, runtime and interface |
-| 0:10 – 0:20 | Will it fit? Parameters, quantisation and a memory estimator |
-| 0:20 – 0:40 | Ollama CLI and a custom model built from a Modelfile |
-| 0:40 – 1:05 | The HTTP API from `curl` and Python: tokens, chat history, temperature, streaming |
-| 1:05 – 1:25 | Embeddings, cosine similarity and a minimal RAG pipeline |
-| 1:25 – 1:30 | Bonus: a permanent Ollama + Open WebUI stack with Docker Compose |
+| 0:10 – 0:20 | Will it fit? Choosing a model size for your computer |
+| 0:20 – 0:35 | Ollama: first model and first conversation |
+| 0:35 – 0:45 | How models behave: tokens, memory, temperature, hallucinations |
+| 0:45 – 0:55 | Your own assistant with a Modelfile |
+| 0:55 – 1:05 | Docker in five minutes and starting Open WebUI |
+| 1:05 – 1:15 | Open WebUI for everyday use: accounts, models, system prompts |
+| 1:15 – 1:25 | RAG: asking questions about your own documents |
+| 1:25 – 1:30 | Keeping it safe: access, backups, updates |
+| Optional | Talking to the model from `curl` and Python |
 
-The Python tasks assume you are comfortable with functions, lists and
-dictionaries.
+`docker-compose.yml` runs only Open WebUI and uses the Ollama installed on
+your computer. [docker-compose.full-stack.yml](docker-compose.full-stack.yml)
+runs both in Docker, for a dedicated home server.
