@@ -11,6 +11,8 @@
 #   sudo systemctl edit ollama   and add:   Environment="OLLAMA_HOST=0.0.0.0"
 # then restart Ollama, and block port 11434 from outside in your firewall.
 
+name: homelab-ai                                        # Fixed project name, so the volume is always called homelab-ai_open-webui-data
+
 services:
   open-webui:
     image: ghcr.io/open-webui/open-webui:main

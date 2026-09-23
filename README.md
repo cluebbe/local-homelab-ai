@@ -20,13 +20,10 @@ further.
 [Docker Desktop](https://www.docker.com/products/docker-desktop/). A graphics
 card is not needed. Python 3.9+ is only needed for the optional part.
 
-Do the downloads before the workshop, because they are several GB:
-
-```bash
-ollama pull llama3.2:3b       # The model used throughout (~2 GB)
-docker compose pull           # Open WebUI (run inside this folder)
-ollama pull nomic-embed-text  # Only for the optional Python part
-```
+Participants **do not need this repository**. They create their own
+`homelab-ai` project folder and copy each file from the workshop text into
+it, as explained in the workshop's *Before the Workshop* section. The files in
+this repository are the finished versions, for instructors and for checking.
 
 Work through the `.md` file: read a section, try the task yourself, then open
 the solution to compare.
@@ -36,10 +33,13 @@ the solution to compare.
 ## Workshop
 
 ### Local Homelab AI
-**Files:** [HOMELAB_AI_BASICS.md](HOMELAB_AI_BASICS.md) (the workshop) ·
-[Modelfile](Modelfile) · [docker-compose.yml](docker-compose.yml) ·
-[sample_docs/](sample_docs/) · [homelab_ai_basics.py](homelab_ai_basics.py)
-(optional part)
+**Workshop:** [HOMELAB_AI_BASICS.md](HOMELAB_AI_BASICS.md)
+
+**Reference files** (participants create these themselves during the tasks):
+[Modelfile](Modelfile) (Task 4) · [docker-compose.yml](docker-compose.yml)
+(Task 5) · [sample_docs/homelab_handbook.md](sample_docs/homelab_handbook.md)
+(Task 7) · [homelab_ai_basics.py](homelab_ai_basics.py) (optional part,
+downloaded from GitHub)
 
 | Time | Part |
 |---|---|

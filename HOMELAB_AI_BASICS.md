@@ -74,16 +74,50 @@ ollama pull llama3.2:3b
 ```
 
 **4. Install Docker Desktop** from
-[docker.com](https://www.docker.com/products/docker-desktop/), start it once,
-then download Open WebUI in advance (several GB). Run this in the folder of
-this repository:
+[docker.com](https://www.docker.com/products/docker-desktop/) and start it
+once. Then download Open WebUI in advance (several GB):
 
 ```bash
-docker compose pull
+docker pull ghcr.io/open-webui/open-webui:main
 ```
+
+**5. Install a text editor for code.** You will write a few small text
+files today. Word processors such as Word or TextEdit add hidden formatting
+and break these files. The free [Visual Studio Code](https://code.visualstudio.com)
+works on every system and is what the instructions assume.
+
+**6. Create your project folder.** All files from this workshop go into one
+folder called `homelab-ai` in your home folder. These commands work the same
+on macOS, Windows (PowerShell) and Linux:
+
+```bash
+cd ~                 # Go to your home folder
+mkdir homelab-ai     # Create the project folder
+cd homelab-ai        # Go into it
+code .               # Open the folder in Visual Studio Code
+```
+
+If `code .` is not found, open VS Code yourself and choose *File → Open
+Folder…* → `homelab-ai`.
 
 **Hardware:** 8 GB of RAM is enough for today. A graphics card is not needed.
 It only makes answers faster.
+
+### Creating a File in Your Project Folder
+
+Several tasks ask you to create a file. It always works the same way:
+
+1. In VS Code, click the *New File* icon next to `HOMELAB-AI` in the file
+   list on the left (or *File → New File…*).
+2. Type the **exact** file name given in the task, e.g. `Modelfile`, with no
+   `.txt` at the end.
+3. Copy the content from the workshop into the file and save it with
+   `Cmd + S` (macOS) or `Ctrl + S` (Windows/Linux).
+
+Terminal commands in the tasks must be run **inside the project folder**. If
+you open a new terminal window, go back into it first with `cd ~/homelab-ai`.
+In VS Code, *Terminal → New Terminal* opens a terminal that is already in the
+right place.
 
 ---
 
@@ -257,22 +291,8 @@ together with:
   conversation
 - default **parameters**, such as temperature
 
-Open the file [Modelfile](Modelfile) in this repository with any text editor
-and read it. Then build and try your assistant:
-
-```bash
-ollama create homelab-helper -f Modelfile
-ollama run homelab-helper
-```
-
-Now change the `SYSTEM` text so the assistant does something different, for
-example answering like a patient teacher, or always replying in German.
-Rebuild it with the same `ollama create` command and compare.
-
-<details>
-<summary>Solution</summary>
-
-The provided Modelfile:
+**1.** In your `homelab-ai` folder, create a file named exactly `Modelfile`
+(capital M, no file extension) with this content:
 
 ```dockerfile
 FROM llama3.2:3b
@@ -287,6 +307,22 @@ Keep answers short, prefer concrete commands, and say clearly when you are
 not sure about something.
 """
 ```
+
+**2.** In the terminal, inside `homelab-ai`, build and try your assistant:
+
+```bash
+ollama create homelab-helper -f Modelfile
+ollama run homelab-helper
+```
+
+**3.** What does each line of the Modelfile do?
+
+**4.** Change the `SYSTEM` text so the assistant does something different,
+for example answering like a patient teacher, or always replying in German.
+Save, run the same `ollama create` command again, and compare.
+
+<details>
+<summary>Solution</summary>
 
 | Line | Meaning |
 |---|---|
@@ -310,6 +346,9 @@ kurz und mit konkreten Befehlen.
 - A system prompt shapes **style and focus**. It does not add knowledge. If
   the base model does not know something, the assistant does not either.
 - Remove it again with `ollama rm homelab-helper`.
+- `open Modelfile: no such file or directory` means the terminal is not in
+  the `homelab-ai` folder (run `cd ~/homelab-ai`), or the editor saved the
+  file as `Modelfile.txt`. Rename it, or use `-f Modelfile.txt`.
 
 </details>
 
@@ -331,19 +370,54 @@ computer and you don't need to install anything else.
 | **Volume** | A storage area that survives when the container is deleted: **your data lives here** |
 | **docker-compose.yml** | A text file describing which containers to start, and how |
 
-Open [docker-compose.yml](docker-compose.yml) and find the answers to:
+**1.** In your `homelab-ai` folder, create a file named `docker-compose.yml`
+with this content. Lines starting with `#` are comments for you. Docker
+ignores them.
+
+```yaml
+# Open WebUI in Docker, talking to the Ollama installed on this computer.
+
+name: homelab-ai
+
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - open-webui-data:/app/backend/data
+
+volumes:
+  open-webui-data:
+```
+
+In YAML files, the **indentation matters**: use spaces, never tabs, and keep
+the lines exactly as far indented as above.
+
+**2.** Read the file and find the answers to:
 
 1. On which address will Open WebUI be reachable in your browser?
 2. How does Open WebUI find your Ollama?
 3. Where are your accounts and chats stored?
 
-Then, in the folder of this repository, start it:
+**3.** In the terminal, inside `homelab-ai`, start it:
 
 ```bash
 docker compose up -d
 ```
 
 Wait about a minute and open <http://localhost:3000>.
+
+> **Linux only:** Ollama on Linux listens only to programs on the same
+> computer, and a container does not count. Run `sudo systemctl edit ollama`,
+> add the two lines `[Service]` and `Environment="OLLAMA_HOST=0.0.0.0"`, save,
+> and run `sudo systemctl restart ollama`. Make sure your firewall blocks port
+> 11434 from other computers.
 
 <details>
 <summary>Solution</summary>
@@ -355,8 +429,19 @@ Wait about a minute and open <http://localhost:3000>.
    `localhost` means the container itself. `host.docker.internal` is Docker's
    name for *the computer the container runs on*, where Ollama listens on
    port 11434.
-3. In the volume `open-webui-data`. Deleting and recreating the container
-   keeps it.
+3. In the volume `open-webui-data`. Docker puts the project name in front,
+   so `docker volume ls` lists it as `homelab-ai_open-webui-data`. Deleting and
+   recreating the container keeps it.
+
+| Line | Meaning |
+|---|---|
+| `name: homelab-ai` | Name of this project, used in front of container and volume names |
+| `image:` | Which packaged program to run |
+| `restart: unless-stopped` | Start it again automatically after a reboot, unless you stopped it |
+| `ports:` | Which port on your computer leads into the container |
+| `environment:` | Settings passed to the program |
+| `extra_hosts:` | Makes `host.docker.internal` work on Linux too |
+| `volumes:` | Where data is stored so it survives the container |
 
 **Everyday Docker commands:**
 
@@ -372,8 +457,7 @@ docker compose up -d           # …and start it
 - Give it a minute. The first start takes a while. Check `docker compose
   logs -f`.
 - "No models found" in Open WebUI means Ollama is not running, or (on Linux)
-  not reachable from Docker. See the comment at the top of
-  `docker-compose.yml`.
+  not reachable from Docker. See the *Linux only* note in the task.
 - `port is already allocated`: something else uses port 3000. Change the
   first `3000` in the file to e.g. `3001`.
 
@@ -440,34 +524,101 @@ hits the context window.
 The model is not retrained. It simply gets the right page placed in front of
 it at the right moment. Open WebUI does all of this for you.
 
+As a stand-in for your own documents, we use the handbook of an invented
+family that runs a small homelab. It contains details no model can know.
+
 **Your task:**
 
 1. First, without any document, ask the model: *"When are updates installed
    in the Meyer family homelab?"* What happens?
-2. In Open WebUI go to *Workspace → Knowledge*, create a knowledge base
-   called `Homelab`, and upload
-   [sample_docs/homelab_handbook.md](sample_docs/homelab_handbook.md).
-3. Start a new chat, type `#`, select `Homelab`, and ask the same question
+2. In your `homelab-ai` folder, create a file named `homelab_handbook.md` and
+   copy the handbook below into it.
+3. In Open WebUI go to *Workspace → Knowledge*, create a knowledge base
+   called `Homelab`, and upload `homelab_handbook.md` from your `homelab-ai`
+   folder.
+4. Start a new chat, type `#`, select `Homelab`, and ask the same question
    again. Then try:
    - *"What should I do if no websites load?"*
    - *"What is the IP address of the NAS?"*
    - *"Can Anna store client files on atlas?"*
    - *"What is the capital of Australia?"*
-4. Check the **sources** shown under each answer.
+5. Check the **sources** shown under each answer.
+
+<details>
+<summary>homelab_handbook.md: content to copy</summary>
+
+````markdown
+# Homelab Handbook — Family Meyer
+
+*Internal notes. Last updated: March 2026. Maintained by Jonas.*
+
+## Devices
+
+| Name | Hardware | Location | Purpose |
+|---|---|---|---|
+| atlas | Mini PC, 32 GB RAM, 1 TB SSD | Study, shelf above desk | Ollama, Open WebUI, Docker services |
+| vault | Synology NAS, 2 × 4 TB (mirrored) | Basement, next to the router | File storage and photo backup |
+| beacon | Raspberry Pi 4 | Hallway cupboard | Pi-hole ad blocker, DNS for the whole network |
+| router | Fibre router from the ISP | Basement | Internet, Wi-Fi |
+
+## Network
+
+- Home network: `192.168.40.0/24`. The router is `192.168.40.1`.
+- `atlas` has the fixed address `192.168.40.10`, `vault` is `192.168.40.20`,
+  `beacon` is `192.168.40.2`.
+- Guest Wi-Fi is called **Meyer-Guest**. It cannot reach any of the devices above.
+- If websites suddenly stop loading for everyone, restart `beacon` first — a
+  hung Pi-hole takes DNS down with it. Pull the power cable, wait ten seconds,
+  plug it back in.
+
+## Backups
+
+- `vault` backs up the family photo folder every **night at 02:30** to an
+  encrypted cloud bucket.
+- Once a month, on the **first Saturday**, Jonas copies the Open WebUI data
+  volume from `atlas` to `vault` by hand.
+- A second USB drive labelled **"offsite"** is kept at Grandma Hilde's flat and
+  swapped every three months.
+- Restoring has been tested twice; the last successful test was in January 2026.
+
+## AI services
+
+- Open WebUI runs on `atlas` and is reachable inside the house at
+  `http://192.168.40.10:3000`. New accounts must be approved by Jonas.
+- The default model is `llama3.2:3b`. For homework help the kids use
+  `qwen3:4b`, which is better at maths.
+- Ollama is **not** reachable from outside the house. Remote access only works
+  through the Tailscale app, which is installed on Jonas's and Anna's phones.
+
+## Rules
+
+1. No work documents from Anna's employer on `atlas` — her company policy
+   forbids storing client data on private hardware, even locally.
+2. Updates are installed on the **last Sunday of every month**, after a backup.
+3. Nobody opens router ports. If a service needs outside access, use Tailscale.
+
+## Emergency contacts
+
+- Internet outage: ISP hotline, the number is on the sticker on the router.
+- Jonas is travelling: ask Anna; the admin password envelope is in the
+  fireproof box in the study.
+````
+
+</details>
 
 <details>
 <summary>Solution</summary>
 
 1. Without the document the model has no chance. It either says it doesn't
    know or, more likely, **invents** a plausible schedule.
-2. + 3. With the knowledge base the answers come from the handbook:
+2. – 4. With the knowledge base the answers come from the handbook:
    - updates on the **last Sunday of every month**, after a backup
    - restart `beacon` (the Pi-hole): unplug, wait ten seconds, plug back in
    - `vault` is `192.168.40.20`
    - no, because her employer's policy forbids it, even locally
    - the capital question is answered from general knowledge. Nothing in the
      handbook matches, and the sources show that.
-4. Sources let you **check** where an answer came from. This is the most
+5. Sources let you **check** where an answer came from. This is the most
    important habit when using RAG at work.
 
 **Key points:**
@@ -506,18 +657,20 @@ together and decide, for each line, whether it applies to your setup.
 <details>
 <summary>Solution</summary>
 
-**Backing up the Open WebUI volume** (run in the repository folder, with the
-container stopped so the database is consistent):
+**Backing up the Open WebUI volume.** Run this inside `homelab-ai`. The
+container is stopped first so the database is not changed during the copy.
+The middle command is one long line:
 
 ```bash
 docker compose down
-docker run --rm -v local-homelab-ai_open-webui-data:/data -v "$PWD":/backup \
-  alpine tar czf /backup/open-webui-backup.tar.gz -C /data .
+docker run --rm -v homelab-ai_open-webui-data:/data -v ${PWD}:/backup alpine tar czf /backup/open-webui-backup.tar.gz -C /data .
 docker compose up -d
 ```
 
-Check the exact volume name with `docker volume ls`. Compose puts the folder
-name in front of it.
+Afterwards `open-webui-backup.tar.gz` is in your `homelab-ai` folder. Copy it
+to another device, such as a USB drive or NAS. Expect about 1 GB even for a
+fresh installation: Open WebUI keeps its own small model for searching
+documents (Task 7) in the same volume.
 
 **Key points:**
 - A local setup is only as private as its weakest point. An exposed port or
@@ -525,9 +678,9 @@ name in front of it.
 - The sample handbook in Task 7 does exactly this: fixed update day, backup
   first, no open ports, VPN for remote access.
 - For access from other devices in your home, put a reverse proxy with HTTPS
-  (e.g. Caddy) in front of Open WebUI. On a dedicated server, the
-  [docker-compose.full-stack.yml](docker-compose.full-stack.yml) runs Ollama
-  in Docker too.
+  (e.g. Caddy) in front of Open WebUI. On a dedicated server, the file
+  [docker-compose.full-stack.yml](https://github.com/cluebbe/local-homelab-ai/blob/main/docker-compose.full-stack.yml) runs
+  Ollama in Docker too.
 
 </details>
 
@@ -575,17 +728,26 @@ got its numbers.
 
 ### Task 10 — Run and Change the Tutorial Script
 
-[homelab_ai_basics.py](homelab_ai_basics.py) walks through everything from
-this workshop in code: sizing, a first request, tokens and speed, chat
-memory, temperature, streaming, and a small RAG pipeline built by hand. It
-only uses Python's built-in modules.
+The script `homelab_ai_basics.py` walks through everything from this
+workshop in code: sizing, a first request, tokens and speed, chat memory,
+temperature, streaming, and a small RAG pipeline built by hand. It only uses
+Python's built-in modules.
+
+**1.** Install Python 3 from [python.org](https://www.python.org/downloads/)
+if you don't have it yet.
+
+**2.** Open [homelab_ai_basics.py](https://github.com/cluebbe/local-homelab-ai/blob/main/homelab_ai_basics.py) in your
+browser, click the **Download raw file** button (the arrow icon above the
+code, on the right), and save the file into your `homelab-ai` folder.
+
+**3.** In the terminal, inside `homelab-ai`:
 
 ```bash
 ollama pull nomic-embed-text      # The small embedding model for sections 8 and 9
-python3 homelab_ai_basics.py
+python3 homelab_ai_basics.py      # On Windows: python homelab_ai_basics.py
 ```
 
-Then change it:
+**4.** Open the file in VS Code and change it:
 
 1. At the top, set `CHAT_MODEL` to another model from `ollama list`, and run
    it again. Which answers change?
