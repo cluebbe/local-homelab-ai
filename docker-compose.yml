@@ -1,0 +1,47 @@
+# Reference homelab stack: Ollama (model server) + Open WebUI (chat interface)
+#
+# Start:   docker compose up -d
+# Status:  docker compose ps
+# Logs:    docker compose logs -f open-webui
+# Stop:    docker compose down          (volumes — your data — are kept)
+#
+# Then open http://localhost:3000 and create the first (admin) account.
+#
+# Note: if Ollama is already running natively on this machine, it occupies
+# port 11434. Either quit it first, or remove the "ports" section of the
+# ollama service below.
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11434:11434"      # Bind to localhost only — never expose this to the internet
+    volumes:
+      - ollama-models:/root/.ollama  # Downloaded models survive container updates
+    # NVIDIA GPU on Linux: install the NVIDIA Container Toolkit, then uncomment:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    depends_on:
+      - ollama
+    ports:
+      - "127.0.0.1:3000:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434   # Containers find each other by service name
+    volumes:
+      - open-webui-data:/app/backend/data     # Users, chats and uploaded documents
+
+volumes:
+  ollama-models:
+  open-webui-data:

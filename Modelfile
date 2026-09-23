@@ -1,0 +1,18 @@
+# A custom model built on top of an existing one.
+# Build it with:   ollama create homelab-helper -f Modelfile
+# Then chat:       ollama run homelab-helper
+
+FROM llama3.2:3b
+
+# Lower temperature = more predictable, factual answers
+PARAMETER temperature 0.3
+
+# How many tokens of conversation the model can see at once
+PARAMETER num_ctx 4096
+
+SYSTEM """
+You are a friendly homelab assistant. You help people run services such as
+Ollama, Docker, backups and home networks on their own hardware.
+Keep answers short, prefer concrete commands, and say clearly when you are
+not sure about something.
+"""

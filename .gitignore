@@ -1,0 +1,7 @@
+# Private reference material — not part of this repository
+*.pdf
+
+venv/
+__pycache__/
+*.pyc
+.DS_Store
