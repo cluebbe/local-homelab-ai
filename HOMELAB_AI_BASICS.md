@@ -434,10 +434,27 @@ Wait about a minute and open <http://localhost:3000>.
 1. `127.0.0.1:3000:8080` means that port **3000 on your computer** leads to
    port 8080 inside the container, so the address is <http://localhost:3000>.
    `127.0.0.1` restricts it to your own computer.
-2. `OLLAMA_BASE_URL=http://host.docker.internal:11434`. Inside a container,
-   `localhost` means the container itself. `host.docker.internal` is Docker's
-   name for *the computer the container runs on*, where Ollama listens on
-   port 11434.
+2. Through `OLLAMA_BASE_URL=http://host.docker.internal:11434`.
+
+   A container is like a **small separate computer inside your computer**.
+   `localhost` always means "the computer I am on", so inside the container
+   it means the container itself, and Ollama is not in there.
+   `host.docker.internal` is Docker's name for *the real computer the
+   container runs on* (its **host**). `:11434` is the **port**, the "door
+   number" Ollama listens behind.
+
+   ```
+   ┌───────────── Your computer (the host) ─────────────┐
+   │  Ollama, port 11434                                │
+   │     ▲                                              │
+   │     │ host.docker.internal:11434                   │
+   │  ┌──┴────────── Container ──────────┐              │
+   │  │ Open WebUI                       │              │
+   │  │ "localhost" = only this box  ✗   │              │
+   │  └──────────────────────────────────┘              │
+   └────────────────────────────────────────────────────┘
+   ```
+
 3. In the volume `open-webui-data`. Docker puts the project name in front,
    so `docker volume ls` lists it as `homelab-ai_open-webui-data`. Deleting and
    recreating the container keeps it.
