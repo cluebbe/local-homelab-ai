@@ -168,8 +168,57 @@ All numbers are estimates. Even "GB" is not exact: some programs count
 1 GB as 1,000,000,000 bytes, others (e.g. Windows) as 1024 × 1024 × 1024
 bytes, which is ~7 % more.
 
-**Your task:** find out how much memory your computer has. Then decide:
-**what is the largest model size you could run?**
+### Looking Up a Model's Size Before Downloading
+
+Most model names only show the parameter count (`qwen3:8b`), not the format.
+You can still see the exact download size and format before you download
+anything:
+
+**On the website (all systems).** Open the model's **tags** page, i.e.
+`ollama.com/library/` + model name + `/tags`, for example
+[ollama.com/library/qwen3/tags](https://ollama.com/library/qwen3/tags). You
+can also browse [ollama.com/library](https://ollama.com/library) and click a
+model. Every download is listed with its size:
+
+```
+qwen3:14b          9.3GB
+qwen3:14b-q4_K_M   9.3GB
+qwen3:14b-q8_0     16GB
+qwen3:14b-fp16     30GB
+```
+
+The plain name (`qwen3:14b`) has the same size as the `q4_K_M` version. It
+**is** that version. Click a name to see its details, e.g. *parameters 8.19B ·
+quantization Q4_K_M · 5.2GB* for `qwen3:8b`.
+
+**In the terminal (macOS/Linux, optional).** Ollama's download server tells
+you the file sizes without downloading. Put the model name before the `/` and
+the tag after `manifests/`:
+
+```bash
+curl -s https://registry.ollama.ai/v2/library/qwen3/manifests/8b | grep -o '"size":[0-9]*'
+```
+
+```
+"size":487
+"size":5225374496
+"size":1723
+"size":11338
+"size":120
+```
+
+The big number is the model file in bytes: 5,225,374,496 bytes ~ **5.2 GB**. The
+small ones are extras such as the licence text.
+
+**Rule:** the download size is the best estimate of the memory the model needs.
+Add ~20–30 % for the context window while it runs.
+
+**Your task:**
+
+1. Find out how much memory your computer has.
+2. Look up the download sizes of `qwen3` (all sizes) and `gemma3` on the
+   website.
+3. **What is the largest model you could run?**
 
 <details>
 <summary>Solution</summary>
@@ -183,8 +232,9 @@ bytes, which is ~7 % more.
 | **Linux** | `free -h` in the terminal | `nvidia-smi` (NVIDIA cards) |
 
 **Example answers:**
-- 8 GB laptop without a graphics card: stay at **3 – 4B**. Everything else
-  already uses half of your RAM.
+- 8 GB laptop without a graphics card: ~4 GB are left for the model, so
+  downloads up to **~3 GB**, e.g. `qwen3:4b` (2.5 GB). `gemma3:4b` (3.3 GB)
+  is already tight. Everything else already uses half of your RAM.
 - 16 GB MacBook: **7 – 9B** runs comfortably, 14B is the limit.
 - Gaming PC with a 12 GB graphics card: **up to 14B** fully on the card,
   which is fast.
