@@ -66,7 +66,7 @@ print("\n--- 1. Sizing Your Hardware ---")
 
 def estimate_memory_gb(params_billion, bits_per_param, overhead=1.2):
     """Rough memory needed to run a model: weights plus ~20 % for context and runtime."""
-    weights_gb = params_billion * bits_per_param / 8   # 1 billion params at 8 bit = 1 GB
+    weights_gb = params_billion * bits_per_param / 8   # 1 billion params at 8 bit ~ 1 GB
     return weights_gb * overhead
 
 

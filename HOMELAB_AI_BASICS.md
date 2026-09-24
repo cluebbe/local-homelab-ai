@@ -134,20 +134,39 @@ To run a model, **all of it must fit in memory**:
 - normal **RAM**, which is slower, but works.
 - Apple Silicon Macs share one memory pool, so there all of it counts.
 
-Downloaded models are usually **quantised**: each number is stored in about
-4–5 bits instead of 16. That makes them 3–4 times smaller and only slightly
-worse. This gives a simple rule of thumb:
+**How much memory per parameter?** Models are published in **FP16**, which
+stores each parameter in 16 bits = **2 bytes**. So one billion parameters take
+2 billion bytes, **~2 GB**. An 8B model would need ~16 GB, which is too much for
+most laptops.
 
-> **Memory needed ≈ billions of parameters × 0.6 GB** (plus headroom for your
-> operating system)
+That's why downloaded models are usually **quantised**: each number is stored
+with less precision, a bit like rounding 3.14159 to 3.14. The quality loss is
+small.
 
-| Model size | Memory needed (quantised) | Typical hardware |
+| Format | Bits per parameter | Bytes per parameter | Per billion parameters |
+|---|---|---|---|
+| FP16 (original) | 16 | 2 | ~2 GB |
+| Q8 | 8 | 1 | ~1 GB |
+| Q4 (e.g. `Q4_K_M`, the usual download) | ~4.5 | ~0.56 | ~0.56 GB |
+
+Q4 is ~4.5 rather than exactly 4 bits because some parts of the model are kept
+more precise. Round ~0.56 up for the program running the model, and you get a
+simple rule of thumb for normal downloads:
+
+> **Memory needed ~ billions of parameters × 0.6 GB** (plus headroom for your
+> operating system and other programs)
+
+| Model size | Memory needed (Q4) | Typical hardware |
 |---|---|---|
-| 1 – 4B | 1 – 3 GB | Any laptop from the last 5 years |
-| 7 – 9B | 5 – 6 GB | 16 GB laptop, entry-level gaming GPU |
-| 12 – 14B | 8 – 10 GB | 16 GB Mac or 12 – 16 GB graphics card |
-| 27 – 32B | 17 – 22 GB | 32 GB Mac, 24 GB graphics card |
-| 70B | 40 – 48 GB | 64 GB Mac, two large graphics cards |
+| 1 – 4B | ~1 – 3 GB | Any laptop from the last 5 years |
+| 7 – 9B | ~5 – 6 GB | 16 GB laptop, entry-level gaming GPU |
+| 12 – 14B | ~8 – 10 GB | 16 GB Mac or 12 – 16 GB graphics card |
+| 27 – 32B | ~17 – 22 GB | 32 GB Mac, 24 GB graphics card |
+| 70B | ~40 – 48 GB | 64 GB Mac, two large graphics cards |
+
+All numbers are estimates. Even "GB" is not exact: some programs count
+1 GB as 1,000,000,000 bytes, others (e.g. Windows) as 1024 × 1024 × 1024
+bytes, which is ~7 % more.
 
 **Your task:** find out how much memory your computer has. Then decide:
 **what is the largest model size you could run?**
@@ -170,9 +189,15 @@ worse. This gives a simple rule of thumb:
 - Gaming PC with a 12 GB graphics card: **up to 14B** fully on the card,
   which is fast.
 
+**Checking the rule on a real model:** `llama3.2:3b` has 3.2 billion
+parameters, so 3.2 × 0.6 gives ~1.9 GB. `ollama list` shows a download of
+~2.0 GB. While running, `ollama ps` shows ~2.6 GB. The extra is mostly the
+**context window**, the model's working notes about the conversation.
+
 **Key points:**
 - Do not plan to use all of your memory. The operating system, browser and
-  the conversation itself need some too.
+  the conversation itself need some too. On an 8 GB laptop, count on only
+  ~half of it being available for the model.
 - If a model does not fit in VRAM, Ollama puts the rest in normal RAM. It
   still works, but can be several times slower.
 - A bigger model is not automatically the right choice. A fast 8B model you
