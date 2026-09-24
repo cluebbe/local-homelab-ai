@@ -213,6 +213,16 @@ small ones are extras such as the licence text.
 **Rule:** the download size is the best estimate of the memory the model needs.
 Add ~20–30 % for the context window while it runs.
 
+**How much memory is left for the model?** Your operating system and other
+programs need roughly the same amount on every computer, so subtract a fixed
+amount instead of a percentage:
+
+> **Memory left for the model ~ your RAM − 4 GB** (leave more if Docker or
+> many browser tabs are running)
+
+A graphics card's own memory (VRAM) is used almost only by the model. There
+you can plan with nearly all of it.
+
 **Your task:**
 
 1. Find out how much memory your computer has.
@@ -232,12 +242,13 @@ Add ~20–30 % for the context window while it runs.
 | **Linux** | `free -h` in the terminal | `nvidia-smi` (NVIDIA cards) |
 
 **Example answers:**
-- 8 GB laptop without a graphics card: ~4 GB are left for the model, so
-  downloads up to **~3 GB**, e.g. `qwen3:4b` (2.5 GB). `gemma3:4b` (3.3 GB)
-  is already tight. Everything else already uses half of your RAM.
-- 16 GB MacBook: **7 – 9B** runs comfortably, 14B is the limit.
-- Gaming PC with a 12 GB graphics card: **up to 14B** fully on the card,
-  which is fast.
+| Computer | Left for the model | Largest comfortable download | Example |
+|---|---|---|---|
+| 8 GB laptop | 8 − 4 = ~4 GB | ~3 GB | `qwen3:4b` (2.5 GB). `gemma3:4b` (3.3 GB) is already tight |
+| 16 GB laptop or Mac | 16 − 4 = ~12 GB | ~9 GB | `qwen3:8b` (5.2 GB) comfortably, `qwen3:14b` (9.3 GB) is the limit |
+| PC with a 12 GB graphics card | nearly all 12 GB of VRAM | ~9 GB | `qwen3:14b` (9.3 GB) fully on the card, which is fast |
+
+The "largest comfortable download" leaves ~20–30 % for the context window.
 
 **Checking the rule on a real model:** `llama3.2:3b` has 3.2 billion
 parameters, so 3.2 × 0.6 gives ~1.9 GB. `ollama list` shows a download of
@@ -246,8 +257,8 @@ parameters, so 3.2 × 0.6 gives ~1.9 GB. `ollama list` shows a download of
 
 **Key points:**
 - Do not plan to use all of your memory. The operating system, browser and
-  the conversation itself need some too. On an 8 GB laptop, count on only
-  ~half of it being available for the model.
+  the conversation itself need some too. Subtract ~4 GB from your RAM, and more
+  if Docker is running.
 - If a model does not fit in VRAM, Ollama puts the rest in normal RAM. It
   still works, but can be several times slower.
 - A bigger model is not automatically the right choice. A fast 8B model you
