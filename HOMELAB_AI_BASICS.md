@@ -39,21 +39,6 @@ all three today:
 | **Runtime** | Loads the model into memory and generates text | **Ollama** |
 | **Interface** | How people talk to the runtime | Terminal, then **Open WebUI** in the browser |
 
-### Schedule
-
-| Time | Part | Tasks |
-|---|---|---|
-| 0:00 – 0:10 | Why local AI, check the setup | Introduction |
-| 0:10 – 0:20 | Will a model fit on my computer? | Task 1 |
-| 0:20 – 0:35 | Ollama: first model, first conversation | Task 2 |
-| 0:35 – 0:45 | How models behave | Task 3 |
-| 0:45 – 0:55 | Your own assistant with a Modelfile | Task 4 |
-| 0:55 – 1:05 | Docker in five minutes, start Open WebUI | Task 5 |
-| 1:05 – 1:15 | Open WebUI for everyday use | Task 6 |
-| 1:15 – 1:25 | Ask questions about your own documents (RAG) | Task 7 |
-| 1:25 – 1:30 | Keeping it safe | Task 8 |
-| Homework | Optional: talk to your model from Python | Tasks 9 – 10 |
-
 ### Before the Workshop
 
 Downloads are big. Please do these steps **at home, before the workshop**.
